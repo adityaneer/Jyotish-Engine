@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jyotish · Vedic Astrology Engine</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Cinzel:wght@400;600;700&family=EB+Garamond:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink:      #1a1008;
+    --vellum:   #f5eed8;
+    --parchment:#e8d9b0;
+    --gold:     #c8922a;
+    --gold-lt:  #e8b84b;
+    --crimson:  #8b1a1a;
+    --indigo:   #1f2558;
+    --shadow:   rgba(30,10,0,.18);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 16px; }
+  body {
+    min-height: 100vh;
+    background: var(--ink);
+    background-image:
+      radial-gradient(ellipse 120% 80% at 50% -10%, #2a1a6a 0%, transparent 70%),
+      radial-gradient(ellipse 60% 50% at 80% 120%, #4a1010 0%, transparent 60%);
+    font-family: 'EB Garamond', serif;
+    color: var(--vellum);
+    overflow-x: hidden;
+  }
+
+  /* starfield */
+  body::before {
+    content:'';
+    position:fixed; inset:0; pointer-events:none; z-index:0;
+    background-image:
+      radial-gradient(1px 1px at 10% 15%, rgba(255,245,200,.7) 0%, transparent 100%),
+      radial-gradient(1px 1px at 25% 60%, rgba(255,245,200,.5) 0%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 40% 30%, rgba(255,245,200,.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 55% 80%, rgba(255,245,200,.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 70% 20%, rgba(255,245,200,.7) 0%, transparent 100%),
+      radial-gradient(1.5px 1.5px at 82% 55%, rgba(255,245,200,.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 92% 10%, rgba(255,245,200,.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 5%  90%, rgba(255,245,200,.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 35% 95%, rgba(255,245,200,.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 60% 45%, rgba(255,245,200,.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 15% 45%, rgba(255,245,200,.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 78% 85%, rgba(255,245,200,.6) 0%, transparent 100%);
+  }
+
+  /* ── page wrapper ── */
+  .page { position:relative; z-index:1; display:flex; flex-direction:column; align-items:center; padding:3rem 1rem 5rem; }
+
+  /* ── masthead ── */
+  .masthead { text-align:center; margin-bottom:3.5rem; }
+  .masthead .om {
+    font-size: 3rem; color:var(--gold); letter-spacing:0.1em;
+    animation: glow 3s ease-in-out infinite alternate;
+    display:block; margin-bottom:.5rem;
+  }
+  @keyframes glow {
+    from { text-shadow: 0 0 10px var(--gold-lt), 0 0 30px rgba(200,146,42,.3); }
+    to   { text-shadow: 0 0 20px var(--gold-lt), 0 0 60px rgba(200,146,42,.5); }
+  }
+  .masthead h1 {
+    font-family:'Cinzel',serif; font-size:clamp(2rem,5vw,3.4rem); font-weight:700;
+    letter-spacing:.25em; text-transform:uppercase;
+    color:var(--gold-lt);
+    text-shadow:0 2px 20px rgba(200,146,42,.4);
+    line-height:1.1;
+  }
+  .masthead .subtitle {
+    font-family:'Cormorant Garamond',serif; font-style:italic;
+    font-size:1.15rem; color:rgba(245,238,216,.6); letter-spacing:.15em;
+    margin-top:.6rem;
+  }
+  .divider {
+    display:flex; align-items:center; gap:.8rem; margin:1.5rem auto; width:100%; max-width:560px;
+  }
+  .divider::before,.divider::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,transparent,var(--gold),transparent); }
+  .divider span { color:var(--gold); font-size:.8rem; }
+
+  /* ── card ── */
+  .card {
+    width:100%; max-width:680px;
+    background: linear-gradient(160deg, rgba(30,20,5,.92) 0%, rgba(15,12,25,.95) 100%);
+    border:1px solid rgba(200,146,42,.25);
+    border-radius:2px;
+    box-shadow: 0 0 0 1px rgba(200,146,42,.08), 0 30px 80px rgba(0,0,0,.6),
+                inset 0 1px 0 rgba(200,146,42,.15);
+    padding: 2.5rem 2.5rem 2rem;
+    position:relative;
+  }
+  .card::before {
+    content:''; position:absolute; inset:6px; border:1px solid rgba(200,146,42,.08); border-radius:1px; pointer-events:none;
+  }
+
+  .section-title {
+    font-family:'Cinzel',serif; font-size:.65rem; letter-spacing:.3em;
+    text-transform:uppercase; color:var(--gold); margin-bottom:1.2rem;
+    display:flex; align-items:center; gap:.8rem;
+  }
+  .section-title::after { content:''; flex:1; height:1px; background:rgba(200,146,42,.25); }
+
+  /* ── form grid ── */
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.2rem; }
+  .form-grid.thirds { grid-template-columns:1fr 1fr 1fr; }
+  .form-group { display:flex; flex-direction:column; gap:.4rem; }
+  .form-group.full { grid-column:1/-1; }
+  label {
+    font-family:'Cinzel',serif; font-size:.6rem; letter-spacing:.2em;
+    text-transform:uppercase; color:rgba(245,238,216,.55);
+  }
+  input, select {
+    background:rgba(255,245,200,.04);
+    border:1px solid rgba(200,146,42,.2);
+    border-radius:1px;
+    color:var(--vellum);
+    font-family:'EB Garamond',serif; font-size:1rem;
+    padding:.6rem .8rem;
+    outline:none; width:100%;
+    transition:border-color .2s, box-shadow .2s;
+    -webkit-appearance:none;
+  }
+  input:focus, select:focus {
+    border-color:rgba(200,146,42,.6);
+    box-shadow:0 0 0 3px rgba(200,146,42,.1);
+  }
+  input::placeholder { color:rgba(245,238,216,.25); }
+  select option { background:#1a1008; color:var(--vellum); }
+
+  /* ── presets ── */
+  .presets { margin-bottom:1.5rem; }
+  .preset-label { font-family:'Cinzel',serif; font-size:.6rem; letter-spacing:.2em; color:rgba(245,238,216,.4); margin-bottom:.6rem; }
+  .preset-btns { display:flex; flex-wrap:wrap; gap:.5rem; }
+  .preset-btn {
+    background:rgba(200,146,42,.08); border:1px solid rgba(200,146,42,.2);
+    color:rgba(245,238,216,.7); font-family:'EB Garamond',serif; font-size:.85rem;
+    padding:.3rem .7rem; cursor:pointer; border-radius:1px; transition:all .2s;
+  }
+  .preset-btn:hover { background:rgba(200,146,42,.2); color:var(--gold-lt); border-color:rgba(200,146,42,.5); }
+
+  /* ── submit ── */
+  .submit-row { margin-top:1.8rem; text-align:center; }
+  .btn-calculate {
+    display:inline-flex; align-items:center; gap:.7rem;
+    background:linear-gradient(135deg, var(--gold) 0%, #a37020 100%);
+    color:var(--ink); font-family:'Cinzel',serif; font-weight:700;
+    font-size:.8rem; letter-spacing:.25em; text-transform:uppercase;
+    border:none; padding:.9rem 2.5rem; cursor:pointer; border-radius:1px;
+    box-shadow:0 4px 24px rgba(200,146,42,.3), 0 2px 4px rgba(0,0,0,.4);
+    transition:all .2s;
+  }
+  .btn-calculate:hover {
+    transform:translateY(-2px);
+    box-shadow:0 8px 32px rgba(200,146,42,.5), 0 4px 8px rgba(0,0,0,.4);
+  }
+  .btn-calculate:active { transform:translateY(0); }
+
+  /* ── error ── */
+  .error-box {
+    background:rgba(139,26,26,.2); border:1px solid rgba(139,26,26,.4);
+    color:#f5a0a0; padding:1rem 1.2rem; font-family:monospace; font-size:.8rem;
+    white-space:pre-wrap; border-radius:2px; margin-bottom:2rem; max-width:680px; width:100%;
+  }
+
+  /* ── pillars ── */
+  .pillars { display:flex; gap:2rem; max-width:680px; width:100%; margin-top:2.5rem; }
+  .pillar {
+    flex:1; text-align:center; padding:1.2rem .5rem;
+    border-top:1px solid rgba(200,146,42,.2); border-bottom:1px solid rgba(200,146,42,.2);
+  }
+  .pillar-icon { font-size:1.8rem; display:block; margin-bottom:.5rem; }
+  .pillar-title { font-family:'Cinzel',serif; font-size:.6rem; letter-spacing:.2em; color:var(--gold); }
+  .pillar-text { font-size:.8rem; color:rgba(245,238,216,.5); margin-top:.3rem; font-style:italic; }
+
+  @media(max-width:540px) {
+    .form-grid, .form-grid.thirds { grid-template-columns:1fr 1fr; }
+    .card { padding:1.5rem 1.2rem; }
+    .pillars { flex-wrap:wrap; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="masthead">
+    <span class="om">ॐ</span>
+    <h1>Jyotish</h1>
+    <p class="subtitle">Vedic Astrology · Powered by PyJHora</p>
+  </header>
+
+  {% if error %}
+  <div class="error-box">{{ error }}</div>
+  {% endif %}
+
+  <div class="card">
+    <p class="section-title">Birth Data</p>
+    <form method="POST" action="/chart">
+
+      <div class="form-group full" style="margin-bottom:1.2rem;">
+        <label>Name</label>
+        <input type="text" name="name" placeholder="e.g. Arjuna" maxlength="60">
+      </div>
+
+      <p class="section-title">Date of Birth</p>
+      <div class="form-grid thirds" style="margin-bottom:1.5rem;">
+        <div class="form-group">
+          <label>Day</label>
+          <input type="number" name="day" min="1" max="31" placeholder="DD" required>
+        </div>
+        <div class="form-group">
+          <label>Month</label>
+          <input type="number" name="month" min="1" max="12" placeholder="MM" required>
+        </div>
+        <div class="form-group">
+          <label>Year</label>
+          <input type="number" name="year" min="-3000" max="2100" placeholder="YYYY" required>
+        </div>
+      </div>
+
+      <p class="section-title">Time of Birth</p>
+      <div class="form-grid thirds" style="margin-bottom:1.5rem;">
+        <div class="form-group">
+          <label>Hour (24h)</label>
+          <input type="number" name="hour" min="0" max="23" placeholder="HH" value="0">
+        </div>
+        <div class="form-group">
+          <label>Minute</label>
+          <input type="number" name="minute" min="0" max="59" placeholder="MM" value="0">
+        </div>
+        <div class="form-group">
+          <label>Second</label>
+          <input type="number" name="second" min="0" max="59" placeholder="SS" value="0">
+        </div>
+      </div>
+
+      <p class="section-title">Place of Birth</p>
+      <div class="presets">
+        <div class="preset-label">Quick-fill cities</div>
+        <div class="preset-btns">
+          <button type="button" class="preset-btn" onclick="setPlace(28.6139,77.2090,5.5)">New Delhi</button>
+          <button type="button" class="preset-btn" onclick="setPlace(19.0760,72.8777,5.5)">Mumbai</button>
+          <button type="button" class="preset-btn" onclick="setPlace(13.0827,80.2707,5.5)">Chennai</button>
+          <button type="button" class="preset-btn" onclick="setPlace(22.5726,88.3639,5.5)">Kolkata</button>
+          <button type="button" class="preset-btn" onclick="setPlace(27.4728,94.9120,5.5)">Dibrugarh</button>
+          <button type="button" class="preset-btn" onclick="setPlace(40.7128,-74.0060,-5)">New York</button>
+          <button type="button" class="preset-btn" onclick="setPlace(51.5074,-0.1278,0)">London</button>
+          <button type="button" class="preset-btn" onclick="setPlace(35.6762,139.6503,9)">Tokyo</button>
+        </div>
+      </div>
+
+      <div class="form-grid" style="margin-bottom:1.2rem;">
+        <div class="form-group">
+          <label>Latitude (°N/S)</label>
+          <input type="number" id="latitude" name="latitude" step="0.0001" min="-90" max="90" placeholder="e.g. 28.6139" required>
+        </div>
+        <div class="form-group">
+          <label>Longitude (°E/W)</label>
+          <input type="number" id="longitude" name="longitude" step="0.0001" min="-180" max="180" placeholder="e.g. 77.2090" required>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:.5rem;">
+        <label>Timezone Offset (UTC±)</label>
+        <select id="timezone" name="timezone">
+          {% for tz in [(-12,'UTC-12:00'),(-11,'UTC-11:00'),(-10,'UTC-10:00'),
+            (-9,'UTC-9:00'),(-8,'UTC-8:00'),(-7,'UTC-7:00'),(-6,'UTC-6:00'),
+            (-5,'UTC-5:00'),(-4,'UTC-4:00'),(-3,'UTC-3:00'),(-2,'UTC-2:00'),
+            (-1,'UTC-1:00'),(0,'UTC+0:00'),(1,'UTC+1:00'),(2,'UTC+2:00'),
+            (3,'UTC+3:00'),(3.5,'UTC+3:30'),(4,'UTC+4:00'),(4.5,'UTC+4:30'),
+            (5,'UTC+5:00'),(5.5,'UTC+5:30 IST'),(5.75,'UTC+5:45'),(6,'UTC+6:00'),
+            (6.5,'UTC+6:30'),(7,'UTC+7:00'),(8,'UTC+8:00'),(9,'UTC+9:00'),
+            (9.5,'UTC+9:30'),(10,'UTC+10:00'),(11,'UTC+11:00'),(12,'UTC+12:00')] %}
+          <option value="{{ tz[0] }}" {% if tz[0] == 5.5 %}selected{% endif %}>{{ tz[1] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="submit-row">
+        <button type="submit" class="btn-calculate">
+          <span>✦</span> Cast the Chart <span>✦</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div class="pillars">
+    <div class="pillar">
+      <span class="pillar-icon">🪐</span>
+      <div class="pillar-title">Graha Positions</div>
+      <div class="pillar-text">All 9 planets in sidereal Lahiri ayanamsha</div>
+    </div>
+    <div class="pillar">
+      <span class="pillar-icon">🌙</span>
+      <div class="pillar-title">Panchanga</div>
+      <div class="pillar-text">Tithi, Nakshatra, Yoga, Karana & Vaara</div>
+    </div>
+    <div class="pillar">
+      <span class="pillar-icon">⏳</span>
+      <div class="pillar-title">Vimshottari Dasha</div>
+      <div class="pillar-text">120-year Maha & Antar dasha periods</div>
+    </div>
+    <div class="pillar">
+      <span class="pillar-icon">📊</span>
+      <div class="pillar-title">Ashtakavarga</div>
+      <div class="pillar-text">Binna & Sarva bindus for all signs</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function setPlace(lat, lon, tz) {
+  document.getElementById('latitude').value = lat;
+  document.getElementById('longitude').value = lon;
+  const sel = document.getElementById('timezone');
+  for (let o of sel.options) {
+    if (parseFloat(o.value) === tz) { sel.value = o.value; break; }
+  }
+}
+</script>
+</body>
+</html>
