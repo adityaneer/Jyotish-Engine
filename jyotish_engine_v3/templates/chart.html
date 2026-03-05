@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ c.name }} — Jyotish Engine v3</title>
+<style>
+:root{--gold:#c9a84c;--dark:#0a0a18;--panel:#12122a;--border:#252545;--text:#e8e0d0;--accent:#7b5ea7;--green:#4ade80;--red:#f87171}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--dark);color:var(--text);font-family:'Segoe UI',sans-serif;font-size:13px}
+header{background:linear-gradient(135deg,#0d0d22,#1a0d30);border-bottom:1px solid var(--gold);padding:13px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+header h1{color:var(--gold);font-size:1.25rem;letter-spacing:3px}
+.meta{font-size:11px;opacity:.7;text-align:right}
+.tab-bar{display:flex;flex-wrap:wrap;gap:3px;padding:9px 14px;background:#0d0d20;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;overflow-x:auto}
+.tab-btn{background:transparent;border:1px solid var(--border);color:#b0a8c0;padding:5px 12px;border-radius:15px;cursor:pointer;font-size:11px;white-space:nowrap;transition:all .15s;flex-shrink:0}
+.tab-btn:hover{border-color:var(--gold);color:var(--gold)}
+.tab-btn.active{background:var(--gold);color:#000;border-color:var(--gold);font-weight:700}
+.pane{display:none;padding:16px;animation:fi .2s}
+.pane.active{display:block}
+@keyframes fi{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:14px}
+.card h3{color:var(--gold);font-size:10px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+table{width:100%;border-collapse:collapse}
+th{background:#181830;color:var(--gold);padding:7px 8px;text-align:left;font-size:10px;letter-spacing:.5px}
+td{padding:6px 8px;border-bottom:1px solid #1c1c38;font-size:12px}
+tr:hover td{background:#16162e}
+select.ctrl{background:#181830;color:var(--text);border:1px solid var(--border);padding:6px 12px;border-radius:6px;margin-bottom:10px;font-size:12px;cursor:pointer;outline:none}
+select.ctrl:focus{border-color:var(--gold)}
+/* North Indian chart */
+.ni{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(4,78px);gap:1px;background:var(--border);max-width:360px}
+.ni-cell{background:var(--panel);padding:5px;font-size:10px;overflow:hidden}
+.ni-cell.lag{border:1.5px solid var(--gold)}
+.ni-cell.emp{background:#080814}
+.hnum{color:var(--gold);opacity:.45;font-size:9px;float:right}
+.rlbl{color:var(--accent);font-size:9px;margin-bottom:2px;clear:both}
+.chip{display:inline-block;background:rgba(123,94,167,.3);border:1px solid rgba(123,94,167,.45);border-radius:3px;padding:1px 4px;margin:1px;font-size:10px}
+.chip.r{background:rgba(248,113,113,.2);border-color:rgba(248,113,113,.5)}
+.badge{display:inline-block;padding:2px 8px;border-radius:9px;font-size:10px;font-weight:600}
+.bg{background:#0f3320;color:var(--green)}
+.br{background:#330f0f;color:var(--red)}
+.bo{background:#3a2800;color:var(--gold)}
+.tag{display:inline-block;padding:2px 8px;border-radius:9px;background:#1c1c3e;font-size:11px;margin:2px;border:1px solid var(--border)}
+.bar{height:6px;background:#1c1c3e;border-radius:3px;margin-top:3px;overflow:hidden}
+.barf{height:100%;background:linear-gradient(90deg,var(--accent),var(--gold));border-radius:3px}
+.d-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.d-name{width:155px;font-weight:600;font-size:12px;flex-shrink:0}
+.nav{background:transparent;border:1px solid var(--border);color:var(--text);padding:5px 13px;border-radius:15px;cursor:pointer;font-size:11px;text-decoration:none;display:inline-block;transition:all .15s}
+.nav:hover{border-color:var(--gold);color:var(--gold)}
+.st{color:var(--gold);font-size:10px;text-transform:uppercase;letter-spacing:1px;padding:9px 0 4px;margin-top:6px;border-bottom:1px solid var(--border)}
+@media(max-width:680px){.g2,.g3{grid-template-columns:1fr}.ni{max-width:100%}}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>✦ {{ c.name }} ✦</h1>
+    <div style="color:var(--gold);font-size:11px;margin-top:3px">
+      Lagna: <strong>{{ c.lagna }}</strong> &nbsp;·&nbsp; {{ c.dob }} &nbsp;·&nbsp; {{ c.tob }}
+    </div>
+  </div>
+  <div class="meta">
+    <div>{{ c.place }}</div>
+    <div style="margin-top:6px;display:flex;gap:5px;justify-content:flex-end;flex-wrap:wrap">
+      <a href="/" class="nav">◂ New Chart</a>
+      <a href="/kundali-match" class="nav">⚭ Match</a>
+      <a href="/varshphal" class="nav">☀ Varshphal</a>
+    </div>
+  </div>
+</header>
+
+<div class="tab-bar">
+{% for tid,tlbl in [
+  ('rasi','⬡ Rasi'),('chart','🪷 Chart'),('planets','☉ Planets'),('panchanga','☽ Panchanga'),
+  ('muhurta','🕐 Muhurta'),('hora','⏳ Hora'),
+  ('vargas','⊞ Vargas'),('gr_dashas','⏱ Graha Dashas'),('rs_dashas','♈ Rashi Dashas'),
+  ('yogas','⭐ Yogas'),('bav','◉ Ashtakavarga'),('shadbala','⚖ Shadbala'),
+  ('arudhas','A Arudhas'),('doshas','⚡ Doshas'),('transits','🔭 Transits'),
+  ('varshphal','☀ Varshphal'),('predictions','📜 Predictions'),('sphuta','✦ Sphuta')
+] %}
+<button class="tab-btn{% if loop.first %} active{% endif %}" onclick="showP('{{tid}}',this)">{{tlbl}}</button>
+{% endfor %}
+</div>
+
+{# ── PANE 1: RASI CHART ── #}
+<div id="pane-rasi" class="pane active">
+<div class="g2">
+  <div class="card">
+    <h3>⬡ North Indian Rasi Chart (D1)</h3>
+    {# North Indian 4×4 grid layout — house numbers per cell #}
+    {% set NI = [12,1,2,3,11,-1,-1,4,10,-1,-1,5,9,8,7,6] %}
+    <div class="ni">
+    {% for cell in NI %}
+      {% if cell == -1 %}
+        <div class="ni-cell emp"></div>
+      {% else %}
+        {% set h = (cell-1) if cell > 0 else 11 %}
+        {% set ri = (c.lagna_num + h) % 12 %}
+        <div class="ni-cell {% if h==0 %}lag{% endif %}">
+          <span class="hnum">{{cell}}</span>
+          <div class="rlbl">{{['Ar','Ta','Ge','Ca','Le','Vi','Li','Sc','Sg','Cp','Aq','Pi'][ri]}}</div>
+          {% if h==0 %}<span class="chip" style="background:rgba(201,168,76,.2);border-color:var(--gold)">Asc</span>{% endif %}
+          {% for p in c.grid.get(h|string, []) %}
+            <span class="chip">{{p.planet[:3]}} <span style="opacity:.55">{{p.lon|int}}°</span></span>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endfor %}
+    </div>
+  </div>
+  <div class="card">
+    <h3>☸ D9 Navamsa Quick View</h3>
+    {% if c.varga.get('9') %}
+    <div style="font-size:11px;color:var(--gold);margin-bottom:8px">Navamsa Lagna: <strong>{{ c.varga['9'].lagna }}</strong></div>
+    <table>
+      <tr><th>Planet</th><th>Navamsa Sign</th></tr>
+      {% for p in c.varga['9'].planets %}
+      <tr><td>{{p.name}}</td><td>{{p.rasi}}</td></tr>
+      {% endfor %}
+    </table>
+    {% else %}<p style="opacity:.4">D9 not computed</p>{% endif %}
+  </div>
+</div>
+</div>
+
+{# ── PANE: CHART SVG ── #}
+<div id="pane-chart" class="pane">
+<div class="g2">
+  <div class="card">
+    <h3>🪷 North Indian Chart</h3>
+    <div style="display:flex;justify-content:center;padding:8px">
+      {% if c.chart_svg_north %}
+        {{ c.chart_svg_north | safe }}
+      {% else %}
+        <p style="opacity:.4">Chart not available</p>
+      {% endif %}
+    </div>
+  </div>
+  <div class="card">
+    <h3>🪷 South Indian Chart</h3>
+    <div style="display:flex;justify-content:center;padding:8px">
+      {% if c.chart_svg_south %}
+        {{ c.chart_svg_south | safe }}
+      {% else %}
+        <p style="opacity:.4">Chart not available</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+</div>
+
+{# ── PANE: MUHURTA ── #}
+<div id="pane-muhurta" class="pane">
+{% set m = c.muhurta_data %}
+{% if m %}
+<div class="g2">
+  <div class="card">
+    <h3>⚠ Inauspicious Periods</h3>
+    <table>
+      {% if m.rahu_kala %}<tr><td>🐍 Rahu Kala</td><td>{{m.rahu_kala.start}} – {{m.rahu_kala.end}}</td></tr>{% endif %}
+      {% if m.yamagandam %}<tr><td>💀 Yamagandam</td><td>{{m.yamagandam.start}} – {{m.yamagandam.end}}</td></tr>{% endif %}
+      {% if m.gulika_kala %}<tr><td>⚫ Gulika Kala</td><td>{{m.gulika_kala.start}} – {{m.gulika_kala.end}}</td></tr>{% endif %}
+      {% for d in m.durmuhurta %}<tr><td>⛔ Durmuhurta</td><td>{{d.start}} – {{d.end}}</td></tr>{% endfor %}
+    </table>
+
+    <h3 style="margin-top:18px">✅ Auspicious Periods</h3>
+    <table>
+      {% if m.brahma_muhurta %}<tr><td>🧘 Brahma Muhurta</td><td>{{m.brahma_muhurta.start}} – {{m.brahma_muhurta.end}}</td></tr>{% endif %}
+      {% if m.abhijit_muhurta %}<tr><td>🌞 Abhijit Muhurta</td><td>{{m.abhijit_muhurta.start}} – {{m.abhijit_muhurta.end}}</td></tr>{% endif %}
+    </table>
+
+    {% if m.disha_shoola or m.agnivasa or m.shivavasa %}
+    <h3 style="margin-top:18px">🧭 Disha Shoola & Vasa</h3>
+    <table>
+      {% if m.disha_shoola %}<tr><td>Disha Shoola</td><td>{{m.disha_shoola.direction}} (avoid travel {{m.disha_shoola.direction_key}})</td></tr>{% endif %}
+      {% if m.agnivasa %}<tr><td>Agnivasa</td><td>{{m.agnivasa.name}} — {{m.agnivasa.guna}} {% if m.agnivasa.is_good %}✓{% else %}✗{% endif %}</td></tr>{% endif %}
+      {% if m.shivavasa %}<tr><td>Shivavasa</td><td>{{m.shivavasa.name}} — {{m.shivavasa.guna}}</td></tr>{% endif %}
+    </table>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3>☀ 15 Dina Muhurtas</h3>
+    <table>
+      <tr><th>#</th><th>Muhurta</th><th>Time</th><th>Quality</th></tr>
+      {% for dm in m.dina_muhurtas %}
+      <tr {% if dm.is_durmuhurta %}style="color:#ef4444"{% elif dm.is_abhijit %}style="color:#facc15"{% endif %}>
+        <td>{{dm.number}}</td>
+        <td>{{dm.name}}{% if dm.is_abhijit %} ★{% endif %}{% if dm.is_durmuhurta %} ⛔{% endif %}</td>
+        <td style="white-space:nowrap">{{dm.start}}</td>
+        <td>{% if dm.guna == 2 %}🟢{% elif dm.guna == 0 %}🔴{% else %}🟡{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    {% if m.ratri_muhurtas %}
+    <h3 style="margin-top:14px">🌙 15 Ratri Muhurtas</h3>
+    <table>
+      <tr><th>#</th><th>Muhurta</th><th>Time</th></tr>
+      {% for rm in m.ratri_muhurtas %}
+      <tr {% if rm.is_nishita %}style="color:#818cf8"{% elif rm.is_brahma %}style="color:#c9a84c"{% endif %}>
+        <td>{{rm.number}}</td>
+        <td>{{rm.name}}{% if rm.is_nishita %} 🌑{% endif %}{% if rm.is_brahma %} 🧘{% endif %}</td>
+        <td style="white-space:nowrap">{{rm.start}}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+  </div>
+</div>
+
+{% if m.sankalpa %}
+<div class="card" style="margin-top:12px">
+  <h3>🙏 Sankalpa</h3>
+  <p style="font-size:14px;line-height:1.8;color:#c9a84c">{{m.sankalpa}}</p>
+</div>
+{% endif %}
+
+{% else %}
+<div class="card"><p style="opacity:.4">Muhurta data not available</p></div>
+{% endif %}
+</div>
+
+{# ── PANE: HORA ── #}
+<div id="pane-hora" class="pane">
+{% set m = c.muhurta_data %}
+<div class="g2">
+  <div class="card">
+    <h3>⏳ Day Horas (Sunrise → Sunset)</h3>
+    {% if m.hora_table %}
+    <table>
+      <tr><th>#</th><th>Planet</th><th>Start</th><th>End</th></tr>
+      {% for h in m.hora_table if h.is_day %}
+      <tr><td>{{h.number}}</td><td>{{h.planet}}</td><td>{{h.start}}</td><td>{{h.end}}</td></tr>
+      {% endfor %}
+    </table>
+    {% else %}<p style="opacity:.4">Hora data not available</p>{% endif %}
+  </div>
+  <div class="card">
+    <h3>🌙 Night Horas (Sunset → Sunrise)</h3>
+    {% if m.hora_table %}
+    <table>
+      <tr><th>#</th><th>Planet</th><th>Start</th><th>End</th></tr>
+      {% for h in m.hora_table if not h.is_day %}
+      <tr><td>{{h.number}}</td><td>{{h.planet}}</td><td>{{h.start}}</td><td>{{h.end}}</td></tr>
+      {% endfor %}
+    </table>
+    {% else %}<p style="opacity:.4">Hora data not available</p>{% endif %}
+  </div>
+</div>
+</div>
+
+{# ── PANE 2: PLANETS ── #}
+<div id="pane-planets" class="pane">
+<div class="card">
+  <h3>☉ Planetary Positions</h3>
+  <table>
+    <tr><th>Planet</th><th>Sign</th><th>Longitude</th><th>House</th><th>Nakshatra</th><th>Retro</th></tr>
+    {% for p in c.planet_table %}
+    <tr>
+      <td><strong>{{p.name}}</strong></td><td>{{p.rasi}}</td><td>{{p.longitude}}°</td>
+      <td>{{p.house}}</td><td>{{p.nakshatra}}</td>
+      <td>{% if p.retro %}<span class="badge br">℞</span>{% else %}—{% endif %}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+</div>
+
+{# ── PANE 3: PANCHANGA ── #}
+<div id="pane-panchanga" class="pane">
+<div class="g3">
+  {% for k,v in c.panchanga.items() %}
+  <div class="card">
+    <h3>{{k|replace('_',' ')|title}}</h3>
+    <div style="font-size:1.05rem;color:var(--gold);margin-top:4px">{{v}}</div>
+  </div>
+  {% endfor %}
+</div>
+</div>
+
+{# ── PANE 4: VARGAS ── #}
+<div id="pane-vargas" class="pane">
+  <select class="ctrl" onchange="showV(this.value)" style="max-width:360px">
+    {% for dcf,vname in varga_list %}
+    <option value="{{dcf}}">{{vname}}</option>
+    {% endfor %}
+  </select>
+  {% for dcf,vname in varga_list %}
+  <div id="vg-{{dcf}}" style="display:{% if dcf==1 %}block{% else %}none{% endif %}">
+    <div class="card">
+      <h3>{{vname}}</h3>
+      {% if c.varga.get(dcf|string) %}
+      <div style="font-size:11px;color:var(--gold);margin-bottom:8px">Lagna: <strong>{{ c.varga[dcf|string].lagna }}</strong></div>
+      <table>
+        <tr><th>Planet</th><th>Sign</th><th>Longitude</th></tr>
+        {% for p in c.varga[dcf|string].planets %}
+        <tr><td>{{p.name}}</td><td>{{p.rasi}}</td><td>{{p.lon}}°</td></tr>
+        {% endfor %}
+      </table>
+      {% else %}<p style="opacity:.4">Not computed</p>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{# ── PANE 5: GRAHA DASHAS ── #}
+<div id="pane-gr_dashas" class="pane">
+  <select class="ctrl" onchange="showD('g',this.value)" style="max-width:400px">
+    {% for k,l,_ in graha_dasha_list %}<option value="{{k}}">{{l}}</option>{% endfor %}
+    {% for k,l,_ in annual_dasha_list %}<option value="a_{{k}}">{{l}} (Annual)</option>{% endfor %}
+  </select>
+  {% for k,l,_ in graha_dasha_list %}
+  <div id="gd-{{k}}" class="dp" style="display:{% if loop.first %}block{% else %}none{% endif %}">
+    <div class="card"><h3>{{l}}</h3>
+      {% if c.gr_dashas.get(k) %}
+      <table><tr><th>Maha Dasha</th><th>Antardasha</th><th>From</th></tr>
+      {% for r in c.gr_dashas[k] %}<tr><td><strong>{{r.lord}}</strong></td><td>{{r.bhukti}}</td><td>{{r.start}}</td></tr>{% endfor %}
+      </table>
+      {% else %}<p style="opacity:.4;padding:8px">Module unavailable or no output for this chart</p>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+  {% for k,l,_ in annual_dasha_list %}
+  <div id="gd-a_{{k}}" class="dp" style="display:none">
+    <div class="card"><h3>{{l}}</h3>
+      {% if c.an_dashas.get(k) %}
+      <table><tr><th>Lord</th><th>Bhukti</th><th>From</th></tr>
+      {% for r in c.an_dashas[k] %}<tr><td><strong>{{r.lord}}</strong></td><td>{{r.bhukti}}</td><td>{{r.start}}</td></tr>{% endfor %}
+      </table>
+      {% else %}<p style="opacity:.4;padding:8px">Not computed</p>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{# ── PANE 6: RASHI DASHAS ── #}
+<div id="pane-rs_dashas" class="pane">
+  <select class="ctrl" onchange="showD('r',this.value)" style="max-width:400px">
+    {% for k,l,_ in rashi_dasha_list %}<option value="{{k}}">{{l}}</option>{% endfor %}
+  </select>
+  {% for k,l,_ in rashi_dasha_list %}
+  <div id="rd-{{k}}" class="rp" style="display:{% if loop.first %}block{% else %}none{% endif %}">
+    <div class="card"><h3>{{l}}</h3>
+      {% if c.rs_dashas.get(k) %}
+      <table><tr><th>Lord</th><th>Bhukti</th><th>From</th></tr>
+      {% for r in c.rs_dashas[k] %}<tr><td><strong>{{r.lord}}</strong></td><td>{{r.bhukti}}</td><td>{{r.start}}</td></tr>{% endfor %}
+      </table>
+      {% else %}<p style="opacity:.4;padding:8px">Not computed</p>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{# ── PANE 7: YOGAS ── #}
+<div id="pane-yogas" class="pane">
+<div class="g2">
+  <div class="card">
+    <h3>⭐ Yogas Detected ({{ c.yoga_data.count }} / {{ c.yoga_data.get('total','?') }})</h3>
+    {% for y in c.yoga_data.yogas %}<span class="tag">{{y.name}}</span>{% endfor %}
+    {% if not c.yoga_data.yogas %}<p style="opacity:.4">None detected</p>{% endif %}
+    {% if c.yoga_data.raja_yogas %}
+    <div class="st">Raja Yogas</div>
+    {% for ry in c.yoga_data.raja_yogas %}<span class="tag" style="border-color:var(--gold);color:var(--gold)">{{ry}}</span>{% endfor %}
+    {% endif %}
+  </div>
+  <div class="card">
+    <h3>📚 BV Raman Yogas (186 types)</h3>
+    {% if c.yoga_data.bvr_yogas %}
+    {% for y in c.yoga_data.bvr_yogas %}<span class="tag" style="border-color:#2a3a2a;color:#90d090">{{y}}</span>{% endfor %}
+    {% else %}<p style="opacity:.4">None detected or module unavailable</p>{% endif %}
+  </div>
+</div>
+</div>
+
+{# ── PANE 8: ASHTAKAVARGA ── #}
+<div id="pane-bav" class="pane">
+  {% if c.bav_data.get('sav') %}
+  <div class="card" style="margin-bottom:12px">
+    <h3>◉ Sarva Ashtakavarga (SAV) — Total Bindus per Sign</h3>
+    <table>
+      <tr>{% for r in ['Ari','Tau','Gem','Can','Leo','Vir','Lib','Sco','Sag','Cap','Aqu','Pis'] %}<th>{{r}}</th>{% endfor %}</tr>
+      <tr>{% for s in c.bav_data.sav %}<td style="text-align:center;font-weight:700;color:{% if s>=28 %}var(--green){% elif s<=21 %}var(--red){% else %}var(--text){% endif %}">{{s}}</td>{% endfor %}</tr>
+    </table>
+  </div>
+  <div class="card">
+    <h3>Binna Ashtakavarga (BAV) per Planet</h3>
+    <table>
+      <tr><th>Planet</th>{% for r in ['Ar','Ta','Ge','Ca','Le','Vi','Li','Sc','Sg','Cp','Aq','Pi'] %}<th>{{r}}</th>{% endfor %}</tr>
+      {% for pl,row in c.bav_data.bav.items() %}
+      <tr><td><strong>{{pl}}</strong></td>{% for v in row %}<td style="text-align:center">{{v}}</td>{% endfor %}</tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% else %}
+  <div class="card"><p style="opacity:.4">Ashtakavarga not computed — check jhora module availability</p></div>
+  {% endif %}
+</div>
+
+{# ── PANE 9: SHADBALA ── #}
+<div id="pane-shadbala" class="pane">
+<div class="card" style="max-width:480px">
+  <h3>⚖ Shadbala — Six-fold Planetary Strength</h3>
+  {% if c.shadbala %}
+  <table>
+    <tr><th>Planet</th><th>Score (Rupas)</th><th>Relative Strength</th></tr>
+    {% for pl,score in c.shadbala.items() %}
+    {% if pl != 'error' %}
+    <tr>
+      <td><strong>{{pl}}</strong></td><td>{{score}}</td>
+      <td><div class="bar"><div class="barf" style="width:{{[score/8*100,100]|min|round}}%"></div></div></td>
+    </tr>
+    {% endif %}
+    {% endfor %}
+  </table>
+  {% else %}<p style="opacity:.4">Not computed</p>{% endif %}
+</div>
+</div>
+
+{# ── PANE 10: ARUDHAS ── #}
+<div id="pane-arudhas" class="pane">
+<div class="g2">
+  <div class="card">
+    <h3>Bhava Arudhas (A1–A12)</h3>
+    {% if c.arudha_data.get('bhava') %}
+    <table><tr><th>Pada</th><th>Sign</th></tr>
+    {% for a in c.arudha_data.bhava %}<tr><td>{{a.house}}</td><td>{{a.rasi}}</td></tr>{% endfor %}
+    </table>
+    {% else %}<p style="opacity:.4">Not computed</p>{% endif %}
+  </div>
+  <div class="card">
+    <h3>Graha Arudhas</h3>
+    {% if c.arudha_data.get('graha') %}
+    <table><tr><th>Planet</th><th>Arudha Sign</th></tr>
+    {% for ga in c.arudha_data.graha %}<tr><td>{{ga.planet}}</td><td>{{ga.rasi}}</td></tr>{% endfor %}
+    </table>
+    {% else %}<p style="opacity:.4">Not computed</p>{% endif %}
+  </div>
+</div>
+</div>
+
+{# ── PANE 11: DOSHAS ── #}
+<div id="pane-doshas" class="pane">
+<div class="card" style="max-width:580px">
+  <h3>⚡ Dosha Analysis</h3>
+  {% if c.dosha_data %}
+  {% for dname,ddata in c.dosha_data.items() %}
+  <div class="d-row">
+    <div class="d-name">{{dname}}</div>
+    {% if ddata.present is defined %}
+    <span class="badge {% if ddata.present %}br{% else %}bg{% endif %}">
+      {% if ddata.present %}⚠ Present{% else %}✓ Absent{% endif %}
+    </span>
+    {% endif %}
+    <div style="font-size:11px;opacity:.65;margin-left:8px">{{ddata.get('detail','')}}</div>
+  </div>
+  {% endfor %}
+  {% else %}<p style="opacity:.4">Not computed</p>{% endif %}
+</div>
+</div>
+
+{# ── PANE 12: TRANSITS ── #}
+<div id="pane-transits" class="pane">
+<div class="card">
+  <h3>🔭 Current Transits vs Natal Chart</h3>
+  {% if c.transits %}
+  <table>
+    <tr><th>Planet</th><th>Natal Sign</th><th>Transit Sign (Today)</th><th>House from Natal</th></tr>
+    {% for t in c.transits %}
+    <tr>
+      <td><strong>{{t.planet}}</strong></td><td>{{t.natal}}</td>
+      <td style="color:var(--gold)">{{t.transit}}</td><td>{{t.h_from_natal}}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}<p style="opacity:.4">Transit data unavailable</p>{% endif %}
+</div>
+</div>
+
+{# ── PANE 13: VARSHPHAL ── #}
+<div id="pane-varshphal" class="pane">
+<div class="g2">
+  <div class="card">
+    <h3>☀ Varshphal — Annual Chart Summary</h3>
+    {% if c.varshphal.get('muntha_rasi') %}
+    <table>
+      <tr><td>Solar Age</td><td style="color:var(--gold)"><strong>{{c.varshphal.age}}</strong></td></tr>
+      <tr><td>Muntha Rasi</td><td style="color:var(--gold)"><strong>{{c.varshphal.muntha_rasi}}</strong></td></tr>
+      <tr><td>Muntha House</td><td>House {{c.varshphal.muntha_house}}</td></tr>
+    </table>
+    {% else %}<p style="opacity:.4">Summary unavailable</p>{% endif %}
+    <a href="/varshphal" class="nav" style="display:inline-block;margin-top:12px">Full Varshphal Page ↗</a>
+  </div>
+  <div class="card">
+    <h3>Sahams (Sensitive Points)</h3>
+    {% if c.varshphal.get('sahams') %}
+    {% for k,v in c.varshphal.sahams.items() %}<span class="tag">{{k}}: {{v}}</span>{% endfor %}
+    {% else %}<p style="opacity:.4">Not computed</p>{% endif %}
+  </div>
+</div>
+</div>
+
+{# ── PANE 14: PREDICTIONS ── #}
+<div id="pane-predictions" class="pane">
+<div class="card">
+  <h3>📜 Predictions (Experimental)</h3>
+  {% if c.prediction_data.get('general') %}
+  <pre style="white-space:pre-wrap;font-size:12px;line-height:1.8;max-height:500px;overflow-y:auto">{{c.prediction_data.general}}</pre>
+  {% else %}
+  <p style="opacity:.5">Prediction engine returned no output for this chart.</p>
+  <p style="opacity:.4;font-size:11px;margin-top:8px">Phase 2 enhancement: connect Claude/GPT API for AI-generated paragraph-level predictions per house, planet placement, and dasha period.</p>
+  {% endif %}
+  {% if c.prediction_data.get('longevity') %}
+  <div class="st">Longevity Estimate</div>
+  <div style="color:var(--gold)">{{c.prediction_data.longevity}}</div>
+  {% endif %}
+</div>
+</div>
+
+{# ── PANE 15: SPHUTA ── #}
+<div id="pane-sphuta" class="pane">
+<div class="card" style="max-width:480px">
+  <h3>✦ Special Lagnas & Sphuta Points</h3>
+  {% if c.sphuta_data %}
+  <table>
+    <tr><th>Lagna Type</th><th>Position</th></tr>
+    {% for name,val in c.sphuta_data.items() %}
+    <tr><td>{{name}}</td><td style="color:var(--gold)">{{val}}</td></tr>
+    {% endfor %}
+  </table>
+  {% else %}<p style="opacity:.4">Not computed — sphuta module issue</p>{% endif %}
+  {% if c.eclipse_data %}
+  <div class="st">Upcoming Eclipse</div>
+  {% for k,v in c.eclipse_data.items() %}<span class="tag">{{k|replace('_',' ')|title}}: {{v}}</span>{% endfor %}
+  {% endif %}
+</div>
+</div>
+
+<script>
+function showP(id,btn){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('pane-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+function showD(type,key){
+  const cls=type==='r'?'.rp':'.dp';
+  const pfx=type==='r'?'rd-':'gd-';
+  document.querySelectorAll(cls).forEach(p=>p.style.display='none');
+  const el=document.getElementById(pfx+key);
+  if(el)el.style.display='block';
+}
+function showV(dcf){
+  document.querySelectorAll('[id^="vg-"]').forEach(v=>v.style.display='none');
+  const el=document.getElementById('vg-'+dcf);
+  if(el)el.style.display='block';
+}
+</script>
+</body>
+</html>

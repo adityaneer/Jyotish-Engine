@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kundali Matching — Jyotish Engine v3</title>
+<style>
+:root{--gold:#c9a84c;--dark:#0a0a18;--panel:#12122a;--border:#252545;--text:#e8e0d0;--accent:#7b5ea7;--green:#4ade80;--red:#f87171}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--dark);color:var(--text);font-family:'Segoe UI',sans-serif;padding:20px;max-width:880px;margin:0 auto}
+header{text-align:center;margin-bottom:24px}
+header h1{color:var(--gold);font-size:1.7rem;letter-spacing:3px}
+header p{color:#777;font-size:12px;margin-top:6px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px}
+.card h3{color:var(--gold);font-size:11px;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+label{display:block;color:var(--gold);font-size:10px;text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px;margin-top:10px}
+input,select{width:100%;background:#181830;border:1px solid var(--border);color:var(--text);padding:8px 11px;border-radius:6px;font-size:12px;outline:none;transition:border .15s}
+input:focus{border-color:var(--gold)}
+.submit-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--accent),#9b4dca);border:none;color:#fff;font-size:14px;font-weight:700;letter-spacing:2px;border-radius:8px;cursor:pointer;margin-top:18px;transition:opacity .15s}
+.submit-btn:hover{opacity:.88}
+.result{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:20px;margin-top:18px}
+.total{text-align:center;font-size:3.2rem;color:var(--gold);font-weight:700;padding:16px 0 8px}
+.verdict{display:inline-block;padding:6px 20px;border-radius:20px;font-size:13px;font-weight:600}
+.vg{background:#0f3320;color:var(--green)}
+.va{background:#33290a;color:#fbbf24}
+.vp{background:#330f0f;color:var(--red)}
+.krow{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #1c1c38}
+.kname{width:145px;font-size:13px;flex-shrink:0}
+.kscore{width:55px;font-weight:700;color:var(--gold);font-size:14px}
+.ktrack{flex:1;height:7px;background:#1c1c38;border-radius:4px;overflow:hidden}
+.kfill{height:100%;background:linear-gradient(90deg,var(--accent),var(--gold));border-radius:4px}
+.xrow{display:flex;align-items:center;gap:10px;padding:7px 0}
+.badge{display:inline-block;padding:2px 10px;border-radius:9px;font-size:11px;font-weight:600}
+.bg{background:#0f3320;color:var(--green)}
+.br{background:#330f0f;color:var(--red)}
+.nav{background:transparent;border:1px solid var(--border);color:var(--text);padding:5px 14px;border-radius:15px;font-size:11px;text-decoration:none;display:inline-block;transition:all .15s}
+.nav:hover{border-color:var(--gold);color:var(--gold)}
+.err{background:#2a0808;border:1px solid var(--red);border-radius:8px;padding:12px;color:var(--red);font-size:12px;white-space:pre-wrap;margin-top:14px;max-height:200px;overflow-y:auto}
+@media(max-width:580px){.g2,.g3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚭ Kundali Matching</h1>
+  <p>Ashtakoota · 8 Kootas · 36 Gunas · Mahendra · Vedha · Rajju · Sthree Dheerga</p>
+  <div style="margin-top:8px"><a href="/" class="nav">◂ Home</a></div>
+</header>
+
+<form method="POST" action="/kundali-match">
+<div class="g2">
+
+  <div class="card">
+    <h3>♂ Boy / Groom</h3>
+    <label>Name</label>
+    <input type="text" name="boy_name" placeholder="Boy's name" value="{{d.boy_name if d else ''}}">
+    <div class="g3">
+      <div><label>Day</label><input type="number" name="boy_day" min="1" max="31" placeholder="DD" required value="{{d.boy_day if d else ''}}"></div>
+      <div><label>Month</label><input type="number" name="boy_month" min="1" max="12" placeholder="MM" required value="{{d.boy_month if d else ''}}"></div>
+      <div><label>Year</label><input type="number" name="boy_year" placeholder="YYYY" required value="{{d.boy_year if d else ''}}"></div>
+    </div>
+    <div class="g3">
+      <div><label>Hour</label><input type="number" name="boy_hour" min="0" max="23" placeholder="HH" value="{{d.boy_hour if d else '12'}}"></div>
+      <div><label>Minute</label><input type="number" name="boy_min" min="0" max="59" placeholder="MM" value="{{d.boy_min if d else '0'}}"></div>
+    </div>
+    <div class="g3">
+      <div><label>Latitude</label><input type="number" step="0.01" name="boy_lat" placeholder="13.08" required value="{{d.boy_lat if d else ''}}"></div>
+      <div><label>Longitude</label><input type="number" step="0.01" name="boy_lon" placeholder="80.27" required value="{{d.boy_lon if d else ''}}"></div>
+      <div><label>Timezone</label><input type="number" step="0.5" name="boy_tz" placeholder="5.5" value="{{d.boy_tz if d else '5.5'}}"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>♀ Girl / Bride</h3>
+    <label>Name</label>
+    <input type="text" name="girl_name" placeholder="Girl's name" value="{{d.girl_name if d else ''}}">
+    <div class="g3">
+      <div><label>Day</label><input type="number" name="girl_day" min="1" max="31" placeholder="DD" required value="{{d.girl_day if d else ''}}"></div>
+      <div><label>Month</label><input type="number" name="girl_month" min="1" max="12" placeholder="MM" required value="{{d.girl_month if d else ''}}"></div>
+      <div><label>Year</label><input type="number" name="girl_year" placeholder="YYYY" required value="{{d.girl_year if d else ''}}"></div>
+    </div>
+    <div class="g3">
+      <div><label>Hour</label><input type="number" name="girl_hour" min="0" max="23" placeholder="HH" value="{{d.girl_hour if d else '12'}}"></div>
+      <div><label>Minute</label><input type="number" name="girl_min" min="0" max="59" placeholder="MM" value="{{d.girl_min if d else '0'}}"></div>
+    </div>
+    <div class="g3">
+      <div><label>Latitude</label><input type="number" step="0.01" name="girl_lat" placeholder="13.08" required value="{{d.girl_lat if d else ''}}"></div>
+      <div><label>Longitude</label><input type="number" step="0.01" name="girl_lon" placeholder="80.27" required value="{{d.girl_lon if d else ''}}"></div>
+      <div><label>Timezone</label><input type="number" step="0.5" name="girl_tz" placeholder="5.5" value="{{d.girl_tz if d else '5.5'}}"></div>
+    </div>
+  </div>
+
+</div>
+<div style="text-align:center">
+  <button type="submit" class="submit-btn" style="max-width:380px">⚭ Calculate Compatibility</button>
+</div>
+</form>
+
+{% if result %}
+  {% if result.error %}
+  <div class="err">⚠ {{ result.error }}</div>
+  {% else %}
+  <div class="result">
+    <div style="text-align:center;margin-bottom:18px">
+      <div style="font-size:12px;color:#666;margin-bottom:6px">Nakshatra</div>
+      <div style="display:flex;justify-content:center;gap:40px;flex-wrap:wrap">
+        <div style="text-align:center">
+          <div style="color:var(--gold);font-size:11px">♂ Boy</div>
+          <div style="font-size:14px;margin-top:2px">{{result.boy_nak_name}}</div>
+        </div>
+        <div style="color:var(--gold);font-size:2rem;align-self:center">⚭</div>
+        <div style="text-align:center">
+          <div style="color:var(--gold);font-size:11px">♀ Girl</div>
+          <div style="font-size:14px;margin-top:2px">{{result.girl_nak_name}}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="total">{{result.total}} <span style="font-size:1.2rem;opacity:.5">/ 36</span></div>
+    <div style="text-align:center;margin-bottom:20px">
+      <span class="verdict {% if result.total>=28 %}vg{% elif result.total>=18 %}va{% else %}vp{% endif %}">
+        {{result.verdict}}
+      </span>
+    </div>
+
+    {% if result.kootas %}
+    <h3 style="color:var(--gold);font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">8 Kootas Breakdown</h3>
+    {% for k in result.kootas %}
+    <div class="krow">
+      <div class="kname">{{k.name}}</div>
+      <div class="kscore">{{k.score}}/{{k.max}}</div>
+      <div class="ktrack">
+        <div class="kfill" style="width:{{(k.score/k.max*100)|round}}%"></div>
+      </div>
+    </div>
+    {% endfor %}
+    {% endif %}
+
+    <div style="margin-top:16px">
+      <h3 style="color:var(--gold);font-size:10px;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Additional Compatibility Checks</h3>
+      {% for label, val in [
+        ('Mahendra Porutham', result.mahendra),
+        ('Vedha Porutham',    result.vedha),
+        ('Rajju Porutham',    result.rajju),
+        ('Sthree Dheerga',    result.sthree_dheerga)
+      ] %}
+      <div class="xrow">
+        <span style="width:175px;font-size:13px">{{label}}</span>
+        <span class="badge {% if val %}bg{% else %}br{% endif %}">
+          {% if val %}✓ Compatible{% else %}✗ Not Compatible{% endif %}
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+{% endif %}
+
+</body>
+</html>

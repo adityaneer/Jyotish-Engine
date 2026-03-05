@@ -1,1 +1,0 @@
-Jyotish Engine project
