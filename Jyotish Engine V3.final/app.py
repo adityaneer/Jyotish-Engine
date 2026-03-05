@@ -26,7 +26,13 @@ Routes:
   GET  /health              → module status JSON
 """
 
-import os, traceback, datetime, sys
+import os, sys, traceback, datetime
+
+# ── Fix import path so jhora/ is always discoverable ────────────────────────
+_base_dir = os.path.dirname(os.path.abspath(__file__))
+if _base_dir not in sys.path:
+    sys.path.insert(0, _base_dir)
+
 from flask import Flask, render_template, request, jsonify
 
 # ── Safe jhora imports ──────────────────────────────────────────────────────
@@ -123,6 +129,10 @@ pdh_mod  = _imp('jhora.horoscope.dhasa.raasi.padhanadhamsa')
 yog_r_mod = _imp('jhora.horoscope.dhasa.raasi.yogardha')
 snd_mod   = _imp('jhora.horoscope.dhasa.raasi.sandhya')
 pty_mod  = _imp('jhora.horoscope.dhasa.annual.patyayini')
+mud_mod  = _imp('jhora.horoscope.dhasa.annual.mudda')
+
+# ── Sudarshana Chakra ────────────────────────────────────────────────────────
+sdc_mod  = _imp('jhora.horoscope.dhasa.sudharsana_chakra')
 
 # ── Match / Transit / Prediction / Eclipse ──────────────────────────────────
 match_mod = _imp('jhora.horoscope.match.compatibility')
@@ -158,6 +168,29 @@ KARANA_NAMES  = ['Bava','Balava','Kaulava','Taitila','Garaja','Vanija','Vishti',
 VARA_NAMES    = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
 LANGUAGES     = {'en':'English','hi':'Hindi','ta':'Tamil',
                  'te':'Telugu','ka':'Kannada','ml':'Malayalam'}
+
+AYANAMSHAS = [
+    ('LAHIRI',              'Lahiri / Chitrapaksha (default)'),
+    ('TRUE_PUSHYA',         'True Pushya (JHora default)'),
+    ('RAMAN',               'B.V. Raman'),
+    ('KP',                  'KP (Krishnamurti)'),
+    ('YUKTESHWAR',          'Yukteshwar'),
+    ('FAGAN',               'Fagan / Bradley'),
+    ('TRUE_CITRA',          'True Citra'),
+    ('TRUE_REVATI',         'True Revati'),
+    ('TRUE_MULA',           'True Mula'),
+    ('TRUE_LAHIRI',         'True Lahiri'),
+    ('SS_CITRA',            'Suryasiddhanta Citra'),
+    ('SS_REVATI',           'Suryasiddhanta Revati'),
+    ('SURYASIDDHANTA',      'Suryasiddhanta'),
+    ('SURYASIDDHANTA_MSUN', 'Suryasiddhanta (Mean Sun)'),
+    ('ARYABHATA',           'Aryabhata'),
+    ('ARYABHATA_MSUN',      'Aryabhata (Mean Sun)'),
+    ('USHASHASHI',          'Usha-Shashi'),
+    ('SENTHIL',             'Senthil'),
+    ('KP-SENTHIL',          'KP-Senthil'),
+    ('SIDM_USER',           'User Defined'),
+]
 
 VARGA_CHARTS = [
     (1,'D1 – Rasi'),(2,'D2 – Hora'),(3,'D3 – Drekkana'),
@@ -561,6 +594,17 @@ def compute_chart(data):
         eclipse_data['next_solar'] = str(ne)
     except: pass
 
+    # ── Sudarshana Chakra ───────────────────────────────────────────────────
+    sudarshana = {}
+    if sdc_mod:
+        try:
+            sd = sdc_mod.get_sudharsana_chakra_dhasa_bhukthi(jd, place)
+            if isinstance(sd, dict):
+                sudarshana = {str(k): fmt_dhasa(v) for k, v in sd.items()}
+            elif isinstance(sd, (list, tuple)):
+                sudarshana = {'combined': fmt_dhasa(sd)}
+        except Exception: pass
+
     # ── Muhurtas from kaalavidya ────────────────────────────────────────────
     muhurta_data = {}
     try:
@@ -601,7 +645,8 @@ def compute_chart(data):
         'arudha_data': arudha_data, 'dosha_data': dosha_data,
         'sphuta_data': sphuta_data, 'transits': transits,
         'varshphal': varshphal, 'prediction_data': prediction_data,
-        'eclipse_data': eclipse_data,
+        'eclipse_data': eclipse_data, 'sudarshana': sudarshana,
+        'ayanamsha': ayan,
         'graha_labels': {k: l for k, l, _ in GRAHA_DASHAS},
         'rashi_labels': {k: l for k, l, _ in RASHI_DASHAS},
         'annual_labels': {k: l for k, l, _ in ANNUAL_DASHAS},
@@ -613,7 +658,7 @@ def compute_chart(data):
 # ── Routes ──────────────────────────────────────────────────────────────────
 @app.route('/')
 def index():
-    return render_template('index.html', languages=LANGUAGES)
+    return render_template('index.html', languages=LANGUAGES, ayanamshas=AYANAMSHAS)
 
 @app.route('/chart', methods=['POST'])
 def chart_view():
@@ -621,10 +666,12 @@ def chart_view():
         c = compute_chart(request.form.to_dict())
         return render_template('chart.html', c=c, languages=LANGUAGES,
                                 graha_dasha_list=GRAHA_DASHAS, rashi_dasha_list=RASHI_DASHAS,
-                                annual_dasha_list=ANNUAL_DASHAS, varga_list=VARGA_CHARTS)
+                                annual_dasha_list=ANNUAL_DASHAS, varga_list=VARGA_CHARTS,
+                                ayanamshas=AYANAMSHAS)
     except Exception as e:
         return render_template('index.html',
-                                error=f"{e}\n\n{traceback.format_exc()}", languages=LANGUAGES), 400
+                                error=f"{e}\n\n{traceback.format_exc()}",
+                                languages=LANGUAGES, ayanamshas=AYANAMSHAS), 400
 
 @app.route('/api/chart', methods=['POST'])
 def api_chart():
@@ -651,8 +698,10 @@ def kundali_match():
             result[f'{prefix}_pada']     = int(n[1])
             result[f'{prefix}_nak_name'] = f"{NAK_NAMES[int(n[0])-1]} Pada {n[1]}"
         if match_mod:
+            method = d.get('match_method', 'North')
             ak = match_mod.Ashtakoota(result['boy_nak'], result['boy_pada'],
-                                       result['girl_nak'], result['girl_pada'])
+                                       result['girl_nak'], result['girl_pada'],
+                                       method=method)
             sc = ak.compatibility_score()
             # Ashtakoota return order: [varna, vasiya, gana, dina/tara, yoni, raasi_adhipathi, raasi, naadi, total, mahendra, vedha, rajju, sthree]
             kootas = [('Varna',1),('Vasiya',2),('Gana',6),('Dina/Tara',3),
@@ -667,6 +716,7 @@ def kundali_match():
             result['verdict'] = ('Excellent (≥28)' if result['total'] >= 28 else
                                   'Good (18–27)'    if result['total'] >= 18 else
                                   'Average (12–17)' if result['total'] >= 12 else 'Poor (<12)')
+            result['method'] = method
     except Exception as e:
         result['error'] = f"{e}\n{traceback.format_exc()}"
     return render_template('kundali_match.html', result=result, d=d, languages=LANGUAGES)

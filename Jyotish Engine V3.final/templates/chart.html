@@ -60,6 +60,7 @@ select.ctrl:focus{border-color:var(--gold)}
     <div style="color:var(--gold);font-size:11px;margin-top:3px">
       Lagna: <strong>{{ c.lagna }}</strong> &nbsp;·&nbsp; {{ c.dob }} &nbsp;·&nbsp; {{ c.tob }}
     </div>
+    <div style="font-size:10px;opacity:.5;margin-top:2px">Ayanamsha: {{ c.ayanamsha }}</div>
   </div>
   <div class="meta">
     <div>{{ c.place }}</div>
@@ -78,7 +79,8 @@ select.ctrl:focus{border-color:var(--gold)}
   ('vargas','⊞ Vargas'),('gr_dashas','⏱ Graha Dashas'),('rs_dashas','♈ Rashi Dashas'),
   ('yogas','⭐ Yogas'),('bav','◉ Ashtakavarga'),('shadbala','⚖ Shadbala'),
   ('arudhas','A Arudhas'),('doshas','⚡ Doshas'),('transits','🔭 Transits'),
-  ('varshphal','☀ Varshphal'),('predictions','📜 Predictions'),('sphuta','✦ Sphuta')
+  ('varshphal','☀ Varshphal'),('predictions','📜 Predictions'),('sphuta','✦ Sphuta'),
+  ('sudarshana','☸ Sudarshana')
 ] %}
 <button class="tab-btn{% if loop.first %} active{% endif %}" onclick="showP('{{tid}}',this)">{{tlbl}}</button>
 {% endfor %}
@@ -536,6 +538,34 @@ select.ctrl:focus{border-color:var(--gold)}
   {% for k,v in c.eclipse_data.items() %}<span class="tag">{{k|replace('_',' ')|title}}: {{v}}</span>{% endfor %}
   {% endif %}
 </div>
+</div>
+
+{# ── SUDARSHANA CHAKRA ── #}
+<div id="pane-sudarshana" class="pane">
+  <div class="card" style="margin-bottom:12px">
+    <h3>☸ Sudarshana Chakra — Sun / Moon / Lagna Triple Dhasa</h3>
+    <p style="font-size:11px;opacity:.6;margin-bottom:12px">
+      Simultaneous dasha running from Sun, Moon and Lagna positions.
+      Three concurrent streams reveal timing at multiple life levels.
+    </p>
+    {% if c.sudarshana %}
+      {% for layer, rows in c.sudarshana.items() %}
+      <div class="st">{{ layer | replace('_',' ') | title }} Stream</div>
+      {% if rows %}
+      <table style="margin-bottom:10px">
+        <tr><th>Lord</th><th>Antardasha</th><th>From</th></tr>
+        {% for r in rows %}
+        <tr><td><strong>{{r.lord}}</strong></td><td>{{r.bhukti}}</td><td>{{r.start}}</td></tr>
+        {% endfor %}
+      </table>
+      {% else %}
+      <p style="opacity:.4;padding:4px 0 10px">No data for this stream</p>
+      {% endif %}
+      {% endfor %}
+    {% else %}
+    <p style="opacity:.4;padding:8px">Sudarshana Chakra module unavailable — ensure <code>sudharsana_chakra.py</code> is present in the jhora dhasa folder.</p>
+    {% endif %}
+  </div>
 </div>
 
 <script>

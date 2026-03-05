@@ -50,6 +50,17 @@ input:focus{border-color:var(--gold)}
 </header>
 
 <form method="POST" action="/kundali-match">
+
+<div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:16px">
+  <label style="margin:0;white-space:nowrap">Compatibility Method:</label>
+  <label style="display:flex;align-items:center;gap:6px;margin:0;cursor:pointer;font-size:13px">
+    <input type="radio" name="match_method" value="North" {% if not result or result.get('method','North')=='North' %}checked{% endif %}> North Indian
+  </label>
+  <label style="display:flex;align-items:center;gap:6px;margin:0;cursor:pointer;font-size:13px">
+    <input type="radio" name="match_method" value="South" {% if result and result.get('method')=='South' %}checked{% endif %}> South Indian
+  </label>
+</div>
+
 <div class="g2">
 
   <div class="card">

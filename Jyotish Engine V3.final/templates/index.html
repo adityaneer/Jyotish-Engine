@@ -103,11 +103,9 @@ input:focus,select:focus{border-color:var(--gold)}
         <div>
           <label>Ayanamsha</label>
           <select name="ayanamsha">
-            <option value="LAHIRI">Lahiri (Chitrapaksha)</option>
-            <option value="TRUE_PUSHYA">True Pushya (JHora default)</option>
-            <option value="RAMAN">B.V. Raman</option>
-            <option value="KP">KP (Krishnamurti)</option>
-            <option value="YUKTESHWAR">Yukteshwar</option>
+            {% for code, aname in ayanamshas %}
+            <option value="{{ code }}" {% if request.form.get('ayanamsha','LAHIRI')==code %}selected{% endif %}>{{ aname }}</option>
+            {% endfor %}
           </select>
         </div>
       </div>
